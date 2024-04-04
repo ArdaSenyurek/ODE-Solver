@@ -10,7 +10,7 @@ class ode
 		float dT_;
 		tensor<qnt>* inits_;
 		tensor<qnt>* current_;
-		qnt  (*rule_)(tensor<qnt>*);
+		qnt (*rule_)(tensor<qnt>*);
 		//bus* wire_;
 
 	public:
@@ -40,8 +40,10 @@ class ode
 			res(0,0)  = rule_(&ModifiedCurrent);
 
 			for(int x = 1; x < rank_ + 2; x++)
-				// TODO: cant modify the tensor externally. Tweak the operator.
-				res(x, 0) = ModifiedCurrent[x - 1];
+			{
+				qnt val = ModifiedCurrent[x - 1].get();
+				res.set(x, 0, val);
+			}
 			return res;
 		}
 		
@@ -62,7 +64,7 @@ class rungeKutta4 : ode<qnt>
 		tensor<qnt> a = this -> dot(*(this -> current_));
 		tensor<qnt> b = this -> dot(*(this -> current_) +  1 /(this -> dT_ / 2) / a);
 		tensor<qnt> c = this -> dot(*(this -> current_) +  1 /(this -> dT_ / 2) / b);
-		tensor<qnt> d = this -> dot(*(this -> current_) +  1 /this ->dT_ / c);
+		tensor<qnt> d = this -> dot(*(this -> current_) +  1 /this -> dT_ / c);
 		                                                            
 		this -> current_ += this -> dT_ /6 * (a + 2 * b + 2 * c + d);
 	}
@@ -94,6 +96,6 @@ class euler : ode<qnt>
 	void solveStep() override
 	{
 		tensor<qnt>& currentRef = *(this -> current_);
-		currentRef =  currentRef + this -> dot(*(this -> current_)) / (1/(this -> dT_));
+		currentRef =  currentRef + this -> dot(currentRef) / (1/(this -> dT_));
 	}
 };
