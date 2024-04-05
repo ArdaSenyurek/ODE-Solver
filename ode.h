@@ -5,60 +5,52 @@ template <class qnt>
 class ode
 {
 	protected: 
-		uint rank_;
 		float endTime_;
 		float dT_;
-		tensor<qnt>* inits_;
+		tensor<qnt> inits_;
+		tensor<qnt> (*rule_)(tensor<qnt>);
 		tensor<qnt>* current_;
-		qnt (*rule_)(tensor<qnt>*);
+		uint rank_;
 		//bus* wire_;
 
 	public:
-		ode(int rank,
-		    float end,
-		    float dt,
-		    tensor<qnt>* inVal,
-		    qnt (*funcPtr)(tensor<qnt>*)
-		    //bus* wire
-		    ) 
-
+		ode(tensor<qnt> inVal,
+				float dt,
+				float end,
+				tensor<qnt> (*funcPtr)(tensor<qnt>)
+				) 
 		    :
-		    rank_(rank),
 		    endTime_(end),
 		    dT_(dt),
 		    inits_(inVal),
-		    current_(inits_),
-		    rule_(funcPtr)
-		    //wire_(wire)
-		{}
+		    rule_(funcPtr),
+		    current_(&inits_),
+		    rank_ (inits_.size())
+		{
+				
+		}
 
 		virtual void solveStep() = 0;
 		
-		virtual tensor<qnt> dot(tensor<qnt>& ModifiedCurrent)
+		tensor<qnt> dot(tensor<qnt>& state)
 		{
-			tensor<qnt> res(rank_ + 2, 1);
-			res(0,0)  = rule_(&ModifiedCurrent);
-
-			for(int x = 1; x < rank_ + 2; x++)
-			{
-				qnt val = ModifiedCurrent[x - 1].get();
-				res.set(x, 0, val);
-			}
-			return res;
+			return rule_(*current_);
 		}
 		
-		virtual void solve()
+		void solve()
 		{
-			for(uint i = 0; i < dT_; i++)
+			for(float i = 0; i < endTime_; i += dT_)
 			{
 				solveStep();
+				current_ -> print();
 				//wire_ -> update(current_);
 			}
 		}
 };
 template<class qnt>
-class rungeKutta4 : ode<qnt>
+class rungeKutta4 : public ode<qnt>
 {
+	public:
 	void solveStep() override
 	{
 		tensor<qnt> a = this -> dot(*(this -> current_));
@@ -71,31 +63,22 @@ class rungeKutta4 : ode<qnt>
 };
 
 template<class qnt>
-class euler : ode<qnt>
+class euler : public ode<qnt>
 {
 	public:
-		euler(int rank,
-		    float end,
-		    float dt,
-		    tensor<qnt>* inVal,
-		    qnt(*funcPtr)(tensor<qnt>*)
-		    //bus* wire
-		    ) 
-
-		    :
-
-		    ode<qnt>(rank,
-			     end,
-			     dt,
-			     inVal,
-			     funcPtr
-			     //bus* wire
-		    ) 
-		    {}
+		euler(tensor<qnt> inVal,
+				float dt,
+				float end,
+				tensor<qnt> (*funcPtr)(tensor<qnt>)) 
+			:
+			ode<qnt>(inVal,dt,end,funcPtr) 
+		    {
+			    
+		    }
 
 	void solveStep() override
 	{
 		tensor<qnt>& currentRef = *(this -> current_);
-		currentRef =  currentRef + this -> dot(currentRef) / (1/(this -> dT_));
+		currentRef =  currentRef + this -> dot(currentRef) * (this -> dT_);
 	}
 };
