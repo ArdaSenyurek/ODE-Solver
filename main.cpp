@@ -2,31 +2,32 @@
 #include "../modules/uint.h"
 #include <cmath>
 
-tensor<float> dotFuncs(const tensor<float>);
+tensor<double> dotFuncs(const tensor<double>);
 
 
 int main(){
-	tensor<float> in(3,1,0);
+	tensor<double> in(2,1,0);
+	in.set(1,1, 5);
 	in.print();
 	in.printLinear();
 	in[1];
 	dotFuncs(in);
-	tensor<float> (*dotRulePtr)(tensor<float>);
+	tensor<double> (*dotRulePtr)(tensor<double>);
 	dotRulePtr = &dotFuncs;
-	euler<float> solver = euler<float>(in, 0.01, 0.05, dotRulePtr);
-	ode<float>* solverPtr = &solver;
+	euler<double> solver = euler<double>(in, 1.5, 3, dotRulePtr);
+	ode<double>* solverPtr = &solver;
 
 	solverPtr -> solve();
 	return 0;
 }	
 
-tensor<float> dotFuncs(const tensor<float> state)
+tensor<double> dotFuncs(const tensor<double> state)
 {
-	float phi 	= state[1].get();
-	float y 	= state[2].get();
-	float t 	= state[3].get();
+	double phi 	= state[1].get();
+	double y 	= state[2].get();
+	double t 	= state[3].get();
 	
-	tensor <float> dotTensor(state, -999);
+	tensor <double> dotTensor(state, -999);
        dotTensor = {
 	
 		2 * t,
@@ -34,4 +35,15 @@ tensor<float> dotFuncs(const tensor<float> state)
 		1
 	};
        return dotTensor;
+/*
+	double y 	= state[1].get();
+	double t 	= state[2].get();
+	
+	tensor <double> dotTensor(state, -999);
+       dotTensor = {
+		3 * exp(-t) - 0.4 * y,
+		1
+	};
+       return dotTensor;
+	*/
 }
