@@ -32,9 +32,9 @@ class ode
 
 		virtual void solveStep() = 0;
 		
-		tensor<qnt> dot(tensor<qnt>& state)
+		tensor<qnt> dot(const tensor<qnt> state)
 		{
-			return rule_(*current_);
+			return rule_(state);
 		}
 		
 		void solve()
@@ -51,15 +51,43 @@ template<class qnt>
 class rungeKutta4 : public ode<qnt>
 {
 	public:
-	void solveStep() override
-	{
-		tensor<qnt> a = this -> dot(*(this -> current_));
-		tensor<qnt> b = this -> dot(*(this -> current_) +  1 /(this -> dT_ / 2) / a);
-		tensor<qnt> c = this -> dot(*(this -> current_) +  1 /(this -> dT_ / 2) / b);
-		tensor<qnt> d = this -> dot(*(this -> current_) +  1 /this -> dT_ / c);
-		                                                            
-		this -> current_ += this -> dT_ /6 * (a + 2 * b + 2 * c + d);
-	}
+		rungeKutta4(tensor<qnt> inVal,
+				float dt,
+				float end,
+				tensor<qnt> (*funcPtr)(tensor<qnt>)) 
+			:
+			ode<qnt>(inVal,dt,end,funcPtr),
+			a(this -> rank_, 1),
+			b(this -> rank_, 1),
+			c(this -> rank_, 1),
+			d(this -> rank_, 1)
+		    {
+			    
+		    }
+		void solveStep() override
+		{
+			tensor<qnt>& s = *(this -> current_);
+			const float dT = this -> dT_;
+			a = this -> dot(s);
+			b = this -> dot(s + a * dT/2);
+			c = this -> dot(s + b * dT/2);
+			d = this -> dot(s + c* dT);
+			//a.print();
+			//b.print();
+			//c.print();
+			//d.print();
+
+			s +=  (a + b * 2 + c * 2 + d) * dT /6;
+		}
+	protected:
+
+
+
+		tensor<qnt> a;
+		tensor<qnt> b;
+		tensor<qnt> c;
+		tensor<qnt> d;
+
 };
 
 template<class qnt>
